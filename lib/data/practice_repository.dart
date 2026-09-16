@@ -33,10 +33,11 @@ class SharedPreferencesPracticeRepository implements PracticeRepository {
 
   @override
   Future<void> saveEntries(List<PracticeEntry> entries) async {
-    await _preferences.setString(
+    final saved = await _preferences.setString(
       _key,
       jsonEncode(entries.map((entry) => entry.toJson()).toList()),
     );
+    if (!saved) throw StateError('Practice history could not be persisted.');
   }
 }
 

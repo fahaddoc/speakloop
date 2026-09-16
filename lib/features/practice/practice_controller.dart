@@ -71,8 +71,16 @@ class PracticeController extends ChangeNotifier {
       practicedAt: DateTime.now(),
       note: note.trim(),
     );
-    entries = [entry, ...entries];
-    await _repository.saveEntries(entries);
+    final nextEntries = [entry, ...entries];
+    try {
+      await _repository.saveEntries(nextEntries);
+    } on Object {
+      validationMessage =
+          'Could not save this practice. Your rating and note are still here.';
+      notifyListeners();
+      return false;
+    }
+    entries = nextEntries;
     clearDraft();
     return true;
   }

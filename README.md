@@ -6,7 +6,7 @@ This is an independent portfolio demonstration. It is not affiliated with Everis
 
 ## Run locally
 
-Install [Flutter](https://docs.flutter.dev/get-started/install) with web support, then run:
+Install Flutter 3.44.0 or newer with web support, then run:
 
 ```bash
 flutter pub get
@@ -43,7 +43,7 @@ flutter build web
 
 ## Privacy and limitations
 
-Audio is temporary and is never written to practice history. The browser may keep a recording blob in memory until it is discarded, replaced, or the page closes. Practice history remains in that browser profile and is not synced. Clearing site data removes it. Microphone behavior depends on browser support, a secure context, and user permission. The included content is a compact demonstration rather than a full language curriculum.
+Audio is temporary and is never written to practice history. Changing the prompt, saving, or discarding cancels an active capture and removes the recording from the current practice. Practice history remains in that browser profile and is not synced. Clearing site data removes it. Microphone behavior depends on browser support, a secure context, and user permission. The included content is a compact demonstration rather than a full language curriculum.
 
 The implementation was developed with AI assistance and reviewed through automated tests, static analysis, and a production web build.
 

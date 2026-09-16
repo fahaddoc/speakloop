@@ -45,6 +45,20 @@ void main() {
       expect(controller.selectedRating, isNull);
       expect(controller.note, isEmpty);
     });
+
+    test('keeps draft and history unchanged when persistence fails', () async {
+      final controller = PracticeController(_FailingRepository());
+      await controller.initialize();
+      controller.setRating(SelfRating.feltNatural);
+      controller.setNote('Keep this note');
+
+      expect(await controller.completePractice(), isFalse);
+
+      expect(controller.entries, isEmpty);
+      expect(controller.selectedRating, SelfRating.feltNatural);
+      expect(controller.note, 'Keep this note');
+      expect(controller.validationMessage, contains('save'));
+    });
   });
 
   test('lesson catalog contains three bilingual structured lessons', () {
@@ -61,4 +75,13 @@ void main() {
       );
     }
   });
+}
+
+class _FailingRepository implements PracticeRepository {
+  @override
+  Future<List<PracticeEntry>> loadEntries() async => [];
+
+  @override
+  Future<void> saveEntries(List<PracticeEntry> entries) =>
+      Future.error(StateError('disk full'));
 }

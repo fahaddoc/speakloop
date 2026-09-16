@@ -10,6 +10,8 @@
 - Responsive warm paper/coral/teal notebook interface for narrow and desktop widths
 - Semantic labels, keyboard-focusable controls, validation copy, and an empty progress state
 - Project README, MIT license, and GitHub Actions checks for analysis, tests, and web build
+- Persist-before-state saving that preserves the rating and note when browser storage fails
+- Recorder lifecycle cleanup when saving or changing prompts, with stop/playback failure handling
 
 ## Verification
 
@@ -18,10 +20,10 @@ Run on September 16, 2026 with Flutter 3.47.0 pre-release and Dart 3.14.0:
 | Command | Result |
 | --- | --- |
 | `flutter analyze` | Passed, no issues found |
-| `flutter test` | Passed, 7 tests |
+| `flutter test` | Passed, 12 tests |
 | `flutter build web` | Passed, production bundle written to `build/web` |
 
-Tests cover lesson invariants, prompt transitions, required self-rating validation, saved rating/note state, SharedPreferences replay, malformed persisted data, and first-viewport activity content.
+Tests cover lesson invariants, prompt transitions and note cleanup, required self-rating validation, successful and failed persistence, SharedPreferences replay, malformed persisted data, active and pending recording cancellation, playback failure recovery, and first-viewport activity content. CI is pinned to Flutter 3.44.0, matching the lockfile's minimum Flutter release and Dart 3.13 SDK floor.
 
 ## Local preview
 

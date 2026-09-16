@@ -54,6 +54,29 @@ class _PracticePageState extends State<PracticePage> {
     }
   }
 
+  Future<void> _selectLesson(int index) async {
+    if (index == widget.controller.lessonIndex) return;
+    final discardFuture = recording.discard();
+    noteController.clear();
+    widget.controller.selectLesson(index);
+    await discardFuture;
+  }
+
+  Future<void> _selectPrompt(int index) async {
+    if (index == widget.controller.promptIndex) return;
+    final discardFuture = recording.discard();
+    noteController.clear();
+    widget.controller.selectPrompt(index);
+    await discardFuture;
+  }
+
+  Future<void> _nextPrompt() async {
+    final discardFuture = recording.discard();
+    noteController.clear();
+    widget.controller.nextPrompt();
+    await discardFuture;
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 1000;
@@ -82,6 +105,7 @@ class _PracticePageState extends State<PracticePage> {
                                 child: _LessonRail(
                                   controller: widget.controller,
                                   vertical: true,
+                                  onSelect: _selectLesson,
                                 ),
                               ),
                               const SizedBox(width: 24),
@@ -91,6 +115,8 @@ class _PracticePageState extends State<PracticePage> {
                                   recording: recording,
                                   noteController: noteController,
                                   onSave: _save,
+                                  onSelectPrompt: _selectPrompt,
+                                  onNextPrompt: _nextPrompt,
                                 ),
                               ),
                               const SizedBox(width: 24),
@@ -108,6 +134,7 @@ class _PracticePageState extends State<PracticePage> {
                               _LessonRail(
                                 controller: widget.controller,
                                 vertical: false,
+                                onSelect: _selectLesson,
                               ),
                               const SizedBox(height: 18),
                               _PracticeCard(
@@ -115,6 +142,8 @@ class _PracticePageState extends State<PracticePage> {
                                 recording: recording,
                                 noteController: noteController,
                                 onSave: _save,
+                                onSelectPrompt: _selectPrompt,
+                                onNextPrompt: _nextPrompt,
                               ),
                               const SizedBox(height: 18),
                               ProgressPanel(entries: widget.controller.entries),
@@ -179,9 +208,14 @@ class _Header extends StatelessWidget {
 }
 
 class _LessonRail extends StatelessWidget {
-  const _LessonRail({required this.controller, required this.vertical});
+  const _LessonRail({
+    required this.controller,
+    required this.vertical,
+    required this.onSelect,
+  });
   final PracticeController controller;
   final bool vertical;
+  final ValueChanged<int> onSelect;
   @override
   Widget build(BuildContext context) {
     final cards = List.generate(lessonCatalog.length, (index) {
@@ -198,7 +232,7 @@ class _LessonRail extends StatelessWidget {
           label: 'Lesson ${lesson.number}: ${lesson.title}',
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => controller.selectLesson(index),
+            onTap: () => onSelect(index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: vertical ? double.infinity : 205,
@@ -292,11 +326,15 @@ class _PracticeCard extends StatelessWidget {
     required this.recording,
     required this.noteController,
     required this.onSave,
+    required this.onSelectPrompt,
+    required this.onNextPrompt,
   });
   final PracticeController controller;
   final RecordingController recording;
   final TextEditingController noteController;
   final VoidCallback onSave;
+  final ValueChanged<int> onSelectPrompt;
+  final VoidCallback onNextPrompt;
 
   @override
   Widget build(BuildContext context) {
@@ -392,7 +430,11 @@ class _PracticeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _PromptDots(controller: controller),
+          _PromptDots(
+            controller: controller,
+            onSelect: onSelectPrompt,
+            onNext: onNextPrompt,
+          ),
           const SizedBox(height: 28),
           const Divider(color: Color(0xFFE1D9CA)),
           const SizedBox(height: 20),
@@ -480,8 +522,14 @@ class _PracticeCard extends StatelessWidget {
 }
 
 class _PromptDots extends StatelessWidget {
-  const _PromptDots({required this.controller});
+  const _PromptDots({
+    required this.controller,
+    required this.onSelect,
+    required this.onNext,
+  });
   final PracticeController controller;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onNext;
   @override
   Widget build(BuildContext context) => Row(
     children: [
@@ -494,7 +542,7 @@ class _PromptDots extends StatelessWidget {
             button: true,
             selected: index == controller.promptIndex,
             child: InkWell(
-              onTap: () => controller.selectPrompt(index),
+              onTap: () => onSelect(index),
               borderRadius: BorderRadius.circular(20),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
@@ -512,10 +560,7 @@ class _PromptDots extends StatelessWidget {
         ),
       ),
       const Spacer(),
-      TextButton(
-        onPressed: controller.nextPrompt,
-        child: const Text('Next phrase  →'),
-      ),
+      TextButton(onPressed: onNext, child: const Text('Next phrase  →')),
     ],
   );
 }
@@ -532,7 +577,9 @@ class _RecorderControls extends StatelessWidget {
         runSpacing: 10,
         children: [
           OutlinedButton.icon(
-            onPressed: controller.state == RecordingState.playing
+            onPressed:
+                controller.state == RecordingState.playing ||
+                    controller.state == RecordingState.starting
                 ? null
                 : controller.toggleRecord,
             icon: Icon(
@@ -540,11 +587,11 @@ class _RecorderControls extends StatelessWidget {
                   ? Icons.stop_rounded
                   : Icons.mic_none_rounded,
             ),
-            label: Text(
-              controller.state == RecordingState.recording
-                  ? 'Stop recording'
-                  : 'Record myself',
-            ),
+            label: Text(switch (controller.state) {
+              RecordingState.starting => 'Starting microphone…',
+              RecordingState.recording => 'Stop recording',
+              _ => 'Record myself',
+            }),
             style: OutlinedButton.styleFrom(
               foregroundColor: controller.state == RecordingState.recording
                   ? _coral
