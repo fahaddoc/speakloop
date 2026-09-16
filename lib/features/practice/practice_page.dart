@@ -579,7 +579,8 @@ class _RecorderControls extends StatelessWidget {
           OutlinedButton.icon(
             onPressed:
                 controller.state == RecordingState.playing ||
-                    controller.state == RecordingState.starting
+                    controller.state == RecordingState.starting ||
+                    controller.state == RecordingState.stopping
                 ? null
                 : controller.toggleRecord,
             icon: Icon(
@@ -590,6 +591,7 @@ class _RecorderControls extends StatelessWidget {
             label: Text(switch (controller.state) {
               RecordingState.starting => 'Starting microphone…',
               RecordingState.recording => 'Stop recording',
+              RecordingState.stopping => 'Stopping…',
               _ => 'Record myself',
             }),
             style: OutlinedButton.styleFrom(
@@ -622,6 +624,12 @@ class _RecorderControls extends StatelessWidget {
               label: const Text('Discard'),
             ),
           ],
+          if (controller.needsCaptureCleanup)
+            TextButton.icon(
+              onPressed: controller.discard,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry microphone cleanup'),
+            ),
         ],
       ),
       if (controller.message != null)

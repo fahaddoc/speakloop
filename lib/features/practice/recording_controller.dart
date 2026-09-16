@@ -4,7 +4,15 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 
-enum RecordingState { idle, starting, recording, ready, playing, unavailable }
+enum RecordingState {
+  idle,
+  starting,
+  recording,
+  stopping,
+  ready,
+  playing,
+  unavailable,
+}
 
 abstract interface class AudioCapture {
   Future<bool> hasPermission();
@@ -59,6 +67,7 @@ class RecordingController extends ChangeNotifier {
     : _capture = capture ?? DeviceAudioCapture(),
       _playback = playback ?? DeviceAudioPlayback() {
     _completionSubscription = _playback.onComplete.listen((_) {
+      if (state != RecordingState.playing) return;
       state = RecordingState.ready;
       notifyListeners();
     });
@@ -70,33 +79,29 @@ class RecordingController extends ChangeNotifier {
   RecordingState state = RecordingState.idle;
   String? recordingPath;
   String? message;
+  bool needsCaptureCleanup = false;
   int _operation = 0;
 
   Future<void> toggleRecord() async {
-    if (state == RecordingState.starting) return;
-    if (state == RecordingState.recording) {
-      try {
-        recordingPath = await _capture.stop();
-        state = recordingPath == null
-            ? RecordingState.idle
-            : RecordingState.ready;
-        message = recordingPath == null
-            ? 'No recording was captured. You can try again.'
-            : null;
-      } on Object {
-        try {
-          await _capture.cancel();
-        } on Object {
-          // The user-facing state below remains safe even if cleanup also fails.
-        }
-        recordingPath = null;
-        state = RecordingState.unavailable;
-        message = 'Recording could not be stopped safely. You can still practise and self-rate.';
-      }
+    if (needsCaptureCleanup) {
+      state = RecordingState.unavailable;
+      message = 'Retry microphone cleanup before starting another recording.';
       notifyListeners();
       return;
     }
+    if (state == RecordingState.starting || state == RecordingState.stopping) {
+      return;
+    }
+    if (state == RecordingState.recording) {
+      await _stopRecording();
+      return;
+    }
+    await _startRecording();
+  }
+
+  Future<void> _startRecording() async {
     final operation = ++_operation;
+    recordingPath = null;
     state = RecordingState.starting;
     message = null;
     notifyListeners();
@@ -109,11 +114,10 @@ class RecordingController extends ChangeNotifier {
         if (operation != _operation) return;
         await _capture.start();
         if (operation != _operation) {
-          await _capture.cancel();
+          await _cancelCapture();
           return;
         }
         state = RecordingState.recording;
-        message = null;
       }
     } on Object {
       if (operation != _operation) return;
@@ -123,9 +127,43 @@ class RecordingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _stopRecording() async {
+    final operation = ++_operation;
+    state = RecordingState.stopping;
+    notifyListeners();
+    try {
+      final path = await _capture.stop();
+      if (operation != _operation) return;
+      recordingPath = path;
+      state = path == null ? RecordingState.idle : RecordingState.ready;
+      message = path == null
+          ? 'No recording was captured. You can try again.'
+          : null;
+    } on Object {
+      final cancelled = await _cancelCapture();
+      if (operation != _operation) return;
+      recordingPath = null;
+      needsCaptureCleanup = !cancelled;
+      state = RecordingState.unavailable;
+      message = cancelled
+          ? 'Recording could not be stopped safely. You can still practise and self-rate.'
+          : 'Microphone cleanup failed. Use your browser microphone control before trying again.';
+    }
+    notifyListeners();
+  }
+
+  Future<bool> _cancelCapture() async {
+    try {
+      await _capture.cancel();
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
   Future<void> play() async {
     final path = recordingPath;
-    if (path == null) return;
+    if (path == null || state != RecordingState.ready) return;
     state = RecordingState.playing;
     message = null;
     notifyListeners();
@@ -140,16 +178,23 @@ class RecordingController extends ChangeNotifier {
 
   Future<void> discard() async {
     _operation++;
-    final wasRecording = state == RecordingState.recording;
     recordingPath = null;
     state = RecordingState.idle;
     message = null;
     notifyListeners();
+    final captureCancelled = await _cancelCapture();
+    needsCaptureCleanup = !captureCancelled;
+    var playbackStopped = true;
     try {
-      if (wasRecording) await _capture.cancel();
       await _playback.stop();
     } on Object {
-      message = 'The recording stopped with an error, but it has been removed from this practice.';
+      playbackStopped = false;
+    }
+    if (!captureCancelled) {
+      message = 'Microphone cleanup failed. Use your browser microphone control, then try Discard again.';
+      notifyListeners();
+    } else if (!playbackStopped) {
+      message = 'Playback cleanup failed, but the recording was removed from this practice.';
       notifyListeners();
     }
   }
