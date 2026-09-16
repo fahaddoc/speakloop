@@ -6,7 +6,7 @@ This is an independent portfolio demonstration. It is not affiliated with Everis
 
 ## Run locally
 
-Install Flutter 3.44.0 or newer with web support, then run:
+Install Flutter 3.47.4 or newer with web support, then run:
 
 ```bash
 flutter pub get

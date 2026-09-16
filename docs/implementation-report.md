@@ -23,7 +23,7 @@ Run on September 16, 2026 with Flutter 3.47.0 pre-release and Dart 3.14.0:
 | `flutter test` | Passed, 15 tests |
 | `flutter build web` | Passed, production bundle written to `build/web` |
 
-Tests cover lesson invariants, prompt transitions and note cleanup, required self-rating validation, successful and failed persistence, SharedPreferences replay, malformed persisted data, active and pending recording cancellation, stale stop results, replacement recordings, cleanup retry, playback failure recovery, and first-viewport activity content. CI is pinned to Flutter 3.44.0, matching the lockfile's minimum Flutter release and Dart 3.13 SDK floor.
+Tests cover lesson invariants, prompt transitions and note cleanup, required self-rating validation, successful and failed persistence, SharedPreferences replay, malformed persisted data, active and pending recording cancellation, stale stop results, replacement recordings, cleanup retry, playback failure recovery, and first-viewport activity content. CI is pinned to Flutter 3.47.4, matching the lockfile's minimum Flutter release and Dart 3.13 SDK floor.
 
 ## Local preview
 
